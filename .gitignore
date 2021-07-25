@@ -1,0 +1,2 @@
+#Ensures we don't push large .root files.
+*.root
