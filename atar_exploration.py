@@ -180,6 +180,8 @@ def plot_event(event, num_planes):
                         wspace = 0.5, 
                         hspace = 0.4)
 
+    plt.show()
+
 
 #Use cuts to select the events we want from the tree. Returns an integer list of the indices of the events that we want from the tree.
 #is_event_DAR: Value of 0 = decays in flight, 1 = decays at rest, 2 = all data used.
@@ -273,6 +275,7 @@ def compare_max_edep(max_Es_DIF, max_Es_DAR, num_bins):
     plt.xlabel("Max Energy by Group (MeV)")
     plt.ylabel("Count")
     plt.legend()
+    plt.show()
 
 
 #Plots gap times given and visualizes how these correlate with DIFs / DARs.
@@ -307,6 +310,7 @@ def compare_gap_times(gap_times_DIF, gap_times_DAR, num_bins):
     plt.xlabel("Time (ns)")
     plt.ylabel("Count")
     plt.legend()
+    plt.show()
 
 
 #Compare energy deposition and gap times of DARs and DIFs for pion --> e data.
