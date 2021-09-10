@@ -65,9 +65,11 @@ def process_event(tree, event_index):
         event.z_data.append(plane)
         event.E_data.append(pixel_edep[i])
 
-        # #Keep track of any gaps in time between decays.
+        #Keep track of any gaps in time between decays.
         if cur_time - last_time > 1.0:      #TODO: Adjust this time gap (in ns) as needed.
             event.gap_times.append(cur_time - last_time)
+
+        #print("plane # " + str(plane))
 
         #Keep track of sum of energies deposited in each plane.
         event.E_per_plane[plane] += pixel_edep[i]
@@ -78,13 +80,14 @@ def process_event(tree, event_index):
     #Keep track of maximum energy deposited per plane in this event.
     event.max_E = max(event.E_per_plane)
 
+
+
     return event
 
 
 #Use cuts to select the events we want from the tree. Returns an integer list of the indices of the events that we want from the tree.
 #is_event_DAR: Value of 0 = decays in flight, 1 = decays at rest, 2 = all data used.
-#num_events:  Controls how many events we want to select.
-def select_events(tree, is_event_DAR, num_events):
+def select_events(tree, is_event_DAR):
     #Apply logical cut to select whether we want DARs and to exclude empty data. n stores the number of entries that satisfy this cut.
     if is_event_DAR == 0:
         cut = "!pion_dar && Sum$(pixel_edep) > 0"
@@ -95,12 +98,11 @@ def select_events(tree, is_event_DAR, num_events):
     n = tree.Draw("Entry$", cut, "goff")
     
     #Get all indices that satisfy the cut.
-    events = []
+    selected_events = []
     for i in range(n):
-        events.append(tree.GetV1()[i])
+        selected_events.append(tree.GetV1()[i])
 
-    selected_events = events[0:num_events]
-    print("Indices of selected events: " + str(selected_events))
+    # print("Indices of selected events: " + str(selected_events))    # TODO: Can remove this?
 
     return [int(i) for i in selected_events]
 
@@ -141,7 +143,7 @@ def process_file(infile, is_event_DAR):
     print(f"There are {n} events in this file!")
 
     #Get indices for events that satisfy DAR / DIF criteria.
-    event_indices = select_events(tree, is_event_DAR, num_events) # TODO:  Remove num_events to get all data.
+    event_indices = select_events(t, is_event_DAR) # TODO:  Remove num_events to get all data.
 
     results = []
 
@@ -151,32 +153,38 @@ def process_file(infile, is_event_DAR):
     #Keep track of gap times.
     gap_times = []
 
-    #For each of the event indices specified, process the corresponding event and display useful output if we want, then plot it.
+    #For each of the event indices specified, process the corresponding event and save useful parameters from it for later analysis.
     for i in range(len(event_indices)):
-        e = process_event(tree, event_indices[i])
-
-        for gt in e.gap_times:
-            gap_times.append(gt)
-
-        max_Es.append(e.max_E)
-
+        e = process_event(t, event_indices[i])
+        
+        #Add information from event to results for easier conversion to a Pandas dataframe.
         results.append({
             'file':infile,
             'event':i,
-            'theta':e.theta,
-            'phi':e.phi,
+            't_data':e.t_data,
+            'x_data':e.x_data,
+            'y_data':e.y_data,
+            'z_data':e.z_data,
+            'E_data':e.E_data,
+            'E_per_plane':e.E_per_plane,
+            'pixel_pdgs':e.pixel_pdgs,
+            'max_E':e.max_E,
+            'gap_times':e.gap_times,
             'test':'wow!'
         })
+        
+        # print([x.GetName() for x in t.GetListOfBranches()])
+
+        # for gt in e.gap_times:
+        #     gap_times.append(gt)
+
+        # max_Es.append(e.max_E)
 
     return results
-    # {
-    #     'file':infile,
-    #     'n':n
-    # }
+
 
 def main():
-
-    is_event_DAR = True     # Do we want to choose DAR / DIF here or later?
+    is_event_DAR = 0     # Can be 0 (no DAR), 1 (DAR), or 2 (Both). TODO: Do we want to choose DAR / DIF here or later?
 
     # python test.py arg arg2 arg3
                     #^^^^^^^^^^^^^

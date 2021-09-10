@@ -1,2 +1,1 @@
 /data/g2/users/labounty/NewSimTest/atar_pitch_scan_pimunu/job_submission_1624386841/2021_06_22_14_34_07_388990182/pienux_out_stripped.root
-/data/g2/users/labounty/NewSimTest/atar_pitch_scan_pimunu/job_submission_1624386841/2021_06_22_14_34_07_381496101/pienux_out_stripped.root
