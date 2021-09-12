@@ -1,3 +1,4 @@
+#Note: Data collection functionality in this file is currently being moved over to the cluster.
 #This is a script version of atar_exploration.ipynb to be run via the command line.
 
 import ROOT as r
