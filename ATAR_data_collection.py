@@ -80,8 +80,6 @@ def process_event(tree, event_index):
     #Keep track of maximum energy deposited per plane in this event.
     event.max_E = max(event.E_per_plane)
 
-
-
     return event
 
 
@@ -102,19 +100,9 @@ def select_events(tree, is_event_DAR):
     for i in range(n):
         selected_events.append(tree.GetV1()[i])
 
-    # print("Indices of selected events: " + str(selected_events))    # TODO: Can remove this?
+    # print("Indices of selected events: " + str(selected_events))
 
     return [int(i) for i in selected_events]
-
-
-#Combines the functions we created above to give a visualization of events with the specified condition(s).
-#is_event_DAR: Value of 0 = decays in flight, 1 = decays at rest, 2 = all data used.
-#display_text_output = True / False controls whether we should have text info / not have text info displayed.
-#display_plots = True / False controls whether event data is plotted or not.
-#num_events allows us to plot multiple events with the specified conditions from the tree.\
-#gap_times = True / False means we should show / not show gap times between decays if any are present.
-def event_visualization(tree, is_event_DAR, display_text_output, display_outliers, num_events):
-    return (max_Es, gap_times)
 
 
 
@@ -138,9 +126,9 @@ def process_file(infile, is_event_DAR):
     f = r.TFile(infile)
     # f.ls()
     t = f.Get("atar")
-    print(t)
+    # print(t)
     n = t.GetEntries()
-    print(f"There are {n} events in this file!")
+    # print(f"There are {n} events in this file!")
 
     #Get indices for events that satisfy DAR / DIF criteria.
     event_indices = select_events(t, is_event_DAR) # TODO:  Remove num_events to get all data.
@@ -157,21 +145,22 @@ def process_file(infile, is_event_DAR):
     for i in range(len(event_indices)):
         e = process_event(t, event_indices[i])
         
+        event_e_dep = sum(e.E_data)
+
         #Add information from event to results for easier conversion to a Pandas dataframe.
         results.append({
-            'file':infile,
             'event':i,
-            't_data':e.t_data,
-            'x_data':e.x_data,
-            'y_data':e.y_data,
-            'z_data':e.z_data,
-            'E_data':e.E_data,
-            'E_per_plane':e.E_per_plane,
-            'pixel_pdgs':e.pixel_pdgs,
-            'max_E':e.max_E,
-            'gap_times':e.gap_times,
-            'test':'wow!'
-        })
+            # 't_data':e.t_data,
+            # 'x_data':e.x_data,
+            # 'y_data':e.y_data,
+            # 'z_data':e.z_data,
+            # 'E_data':e.E_data,
+            # 'E_per_plane':e.E_per_plane,
+            # 'pixel_pdgs':e.pixel_pdgs,
+            'Event E_Dep in ATAR':event_e_dep,
+            #'gap_times':e.gap_times,
+            'file':infile
+        })                                      # TODO:  Why are we getting segmentation violations and failures to print output?  Perhaps memory overflow?
         
         # print([x.GetName() for x in t.GetListOfBranches()])
 
@@ -184,7 +173,7 @@ def process_file(infile, is_event_DAR):
 
 
 def main():
-    is_event_DAR = 0     # Can be 0 (no DAR), 1 (DAR), or 2 (Both). TODO: Do we want to choose DAR / DIF here or later?
+    is_event_DAR = 0     # Can be 0 (DIF only), 1 (DAR only), or 2 (Both). TODO: Do we want to choose DAR / DIF here or later?
 
     # python test.py arg arg2 arg3
                     #^^^^^^^^^^^^^
@@ -194,7 +183,7 @@ def main():
         for line in f:
             files.append(line.strip()) # removes trailing \n: "  test \n" -> "test"
     print("\n")
-    print(files)
+    # print(files)
     print("\n")
     results = []
     for file in files:
