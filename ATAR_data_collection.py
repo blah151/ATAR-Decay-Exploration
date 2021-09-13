@@ -65,9 +65,11 @@ def process_event(tree, event_index):
         event.z_data.append(plane)
         event.E_data.append(pixel_edep[i])
 
-        # #Keep track of any gaps in time between decays.
+        #Keep track of any gaps in time between decays.
         if cur_time - last_time > 1.0:      #TODO: Adjust this time gap (in ns) as needed.
             event.gap_times.append(cur_time - last_time)
+
+        #print("plane # " + str(plane))
 
         #Keep track of sum of energies deposited in each plane.
         event.E_per_plane[plane] += pixel_edep[i]
@@ -82,37 +84,25 @@ def process_event(tree, event_index):
 
 
 #Use cuts to select the events we want from the tree. Returns an integer list of the indices of the events that we want from the tree.
-#is_event_DAR: Value of 0 = decays in flight, 1 = decays at rest, 2 = all data used.
-#num_events:  Controls how many events we want to select.
-def select_events(tree, is_event_DAR, num_events):
-    #Apply logical cut to select whether we want DARs and to exclude empty data. n stores the number of entries that satisfy this cut.
-    if is_event_DAR == 0:
-        cut = "!pion_dar && Sum$(pixel_edep) > 0"
-    elif is_event_DAR == 1:
-        cut = "pion_dar && Sum$(pixel_edep) > 0"
+#is_PiENu: Controls whether we look at PiENu or PiMuE data.
+def select_events(tree, is_PiENu):
+    #Apply logical cut to select whether we want to look at PiENu or PiMuE data.
+    if is_PiENu:
+        cut = "!has_muon && Sum$(pixel_edep) > 0"
     else:
-        cut = "Sum$(pixel_edep) > 0"
+        cut = "has_muon && Sum$(pixel_edep) > 0"
     n = tree.Draw("Entry$", cut, "goff")
     
     #Get all indices that satisfy the cut.
-    events = []
+    selected_events = []
     for i in range(n):
-        events.append(tree.GetV1()[i])
+        selected_events.append(tree.GetV1()[i])
 
-    selected_events = events[0:num_events]
-    print("Indices of selected events: " + str(selected_events))
+    # print("Indices of selected events: " + str(selected_events))
 
     return [int(i) for i in selected_events]
 
 
-#Combines the functions we created above to give a visualization of events with the specified condition(s).
-#is_event_DAR: Value of 0 = decays in flight, 1 = decays at rest, 2 = all data used.
-#display_text_output = True / False controls whether we should have text info / not have text info displayed.
-#display_plots = True / False controls whether event data is plotted or not.
-#num_events allows us to plot multiple events with the specified conditions from the tree.\
-#gap_times = True / False means we should show / not show gap times between decays if any are present.
-def event_visualization(tree, is_event_DAR, display_text_output, display_outliers, num_events):
-    return (max_Es, gap_times)
 
 
 
@@ -127,56 +117,46 @@ def event_visualization(tree, is_event_DAR, display_text_output, display_outlier
 
 
 
-
-
-
-def process_file(infile, is_event_DAR):
+def process_file(infile, is_PiENu):
     assert os.path.exists(infile)
 
     f = r.TFile(infile)
     # f.ls()
     t = f.Get("atar")
-    print(t)
+    # print(t)
     n = t.GetEntries()
-    print(f"There are {n} events in this file!")
+    # print(f"There are {n} events in this file!")
+    #print([x.GetName() for x in t.GetListOfBranches()])
 
     #Get indices for events that satisfy DAR / DIF criteria.
-    event_indices = select_events(tree, is_event_DAR, num_events) # TODO:  Remove num_events to get all data.
+    event_indices = select_events(t, is_PiENu) # TODO:  Remove num_events to get all data.
 
     results = []
 
-    #Use max edep per plane as a heuristic to distinguish between DIFs and DARs.
-    max_Es = []
-
-    #Keep track of gap times.
-    gap_times = []
-
-    #For each of the event indices specified, process the corresponding event and display useful output if we want, then plot it.
+    #For each of the event indices specified, process the corresponding event and save useful parameters from it for later analysis.
     for i in range(len(event_indices)):
-        e = process_event(tree, event_indices[i])
+        e = process_event(t, event_indices[i])
+        
+        #Cut 3: pion and muon energies
+        pi_mu_energy = sum(e.E_data)
+        #If a positron was present, we must subtract all energy deposited by it per Tristan's cut.
+        if t.has_positron:
+            for i in range(0, len(e.E_data)):
+                if e.pixel_pdgs[i] == -11:
+                    pi_mu_energy -= e.E_data[i]
 
-        for gt in e.gap_times:
-            gap_times.append(gt)
-
-        max_Es.append(e.max_E)
-
+        #Add information from event to results for easier conversion to a Pandas dataframe.
         results.append({
-            'file':infile,
             'event':i,
-            'theta':e.theta,
-            'phi':e.phi,
-            'test':'wow!'
-        })
+            'pi_mu_energy':pi_mu_energy,
+            'file':infile
+        })                                      # TODO:  Why are we getting segmentation violations and failures to print output?  Perhaps memory overflow?
 
     return results
-    # {
-    #     'file':infile,
-    #     'n':n
-    # }
+
 
 def main():
-
-    is_event_DAR = True     # Do we want to choose DAR / DIF here or later?
+    is_PiENu = False         # Selects whether we want to store data for PiENu or PiMuE events, which we will compare later.
 
     # python test.py arg arg2 arg3
                     #^^^^^^^^^^^^^
@@ -186,11 +166,12 @@ def main():
         for line in f:
             files.append(line.strip()) # removes trailing \n: "  test \n" -> "test"
     print("\n")
-    print(files)
+    # print(files)
     print("\n")
     results = []
     for file in files:
-        results += process_file(file, is_event_DAR)
+        results += process_file(file, is_PiENu)
+    
 
     df = pandas.DataFrame(results)
     print(df.head())

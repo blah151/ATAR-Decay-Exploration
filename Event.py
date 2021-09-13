@@ -20,7 +20,7 @@ class Event():
         self.y_data = []
         self.z_data = []
         self.E_data = []
-        self.E_per_plane = np.zeros(50)
+        self.E_per_plane = np.zeros(100)
         self.pixel_pdgs = []
         self.max_E = []
         self.gap_times = []
