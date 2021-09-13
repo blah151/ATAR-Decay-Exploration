@@ -5,11 +5,17 @@ from Event import Event
 import pandas as pd
 
 
-cluster_data = pd.read_csv("output.csv")
-print(cluster_data.head())
+pienu_data = pd.read_csv("output_pienu.csv")
+pimue_data = pd.read_csv("output_pimue.csv")
+print(pienu_data.head())
+print(pimue_data.head())
 
-plt.hist(cluster_data.get("Event E_Dep in ATAR"), bins = 50, color = "orange", label = "DIF")
-plt.title("Total Energy Deposited for Decay in Flight Events")
+plt.figure()
+_, bins, _ = plt.hist(pienu_data.get("pi_mu_energy"), bins = 20, color = "orange", alpha = 0.5, label = "pienu_data")
+plt.hist(pimue_data.get("pi_mu_energy"), bins = bins, color = "blue", alpha = 0.5, label = "pimue_data")
+plt.title("Total Energy Deposited in ATAR by Pions and Muons")
 plt.xlabel("E_Dep in ATAR (MeV)")
-plt.ylabel("Count")
+plt.ylabel("Counts")
+plt.yscale("log")
+plt.legend()
 plt.show()
