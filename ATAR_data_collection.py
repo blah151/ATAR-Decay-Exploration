@@ -145,18 +145,30 @@ def process_file(infile, is_PiENu):
                 if e.pixel_pdgs[i] == -11:
                     pi_mu_energy -= e.E_data[i]
 
+        #Cut 5: energy 3 planes before stopping plane
+        three_plane_E_sum = 0
+        for i in range(0, len(e.pixel_pdgs) - 2):
+            dzdt = (e.z_data[i + 2] - e.z_data[i]) / (e.t_data[i + 2] - e.t_data[i])
+
+            #We know we have found the stopping plane if the particle is a pion or antimuon and has stopped moving in z. Also only record a value for the three plane
+            #sum if we are more than a few time intervals in (a pion just sitting there for a few frames in the target deposits no energy anyway).
+            if (e.pixel_pdgs[i] == 211 or e.pixel_pdgs[i] == -13) and abs(dzdt) < 1 and i >= 4:
+                three_plane_E_sum = e.E_data[i - 2] + e.E_data[i - 3] + e.E_data[i - 4]
+
         #Add information from event to results for easier conversion to a Pandas dataframe.
         results.append({
             'event':i,
             'pi_mu_energy':pi_mu_energy,
+            'three_plane_E_sum':three_plane_E_sum,
             'file':infile
-        })                                      # TODO:  Why are we getting segmentation violations and failures to print output?  Perhaps memory overflow?
+        })                         # TODO:  Why are we getting segmentation violations and failures to print output when elements are lists?  Perhaps memory overflow?
 
     return results
 
 
 def main():
-    is_PiENu = False         # Selects whether we want to store data for PiENu or PiMuE events, which we will compare later.
+    # Selects whether we want to store data for PiENu or PiMuE events, which we will compare later.
+    is_PiENu = False
 
     # python test.py arg arg2 arg3
                     #^^^^^^^^^^^^^
