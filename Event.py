@@ -8,6 +8,7 @@ E_per_plane - energy deposited per plane. Should be of length 50 since there are
 pixel_pdgs - particle IDs (as ints) to distinguish different decay products.
 max_E - maximum energy deposited over all planes.
 gap_times - any large time gaps in the data, which signal a decay at rest.
+is_DAR - True means event is a Decay at Rest, False means it is a Decay in Flight.
 '''
 
 import numpy as np
@@ -24,3 +25,4 @@ class Event():
         self.pixel_pdgs = []
         self.max_E = []
         self.gap_times = []
+        self.is_DAR = None

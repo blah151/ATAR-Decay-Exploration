@@ -80,6 +80,9 @@ def process_event(tree, event_index):
     #Keep track of maximum energy deposited per plane in this event.
     event.max_E = max(event.E_per_plane)
 
+    #Keep track of whether event is a DAR (Decay at Rest) or DIF (Decay in Flight). Event is DAR if value is 1, DIF if value is 0.
+    event.is_DAR = tree.pion_dar
+
     return event
 
 
@@ -126,7 +129,7 @@ def process_file(infile, is_PiENu):
     # print(t)
     n = t.GetEntries()
     # print(f"There are {n} events in this file!")
-    #print([x.GetName() for x in t.GetListOfBranches()])
+    # print([x.GetName() for x in t.GetListOfBranches()])
 
     #Get indices for events that satisfy DAR / DIF criteria.
     event_indices = select_events(t, is_PiENu) # TODO:  Remove num_events to get all data.
@@ -158,6 +161,7 @@ def process_file(infile, is_PiENu):
         #Add information from event to results for easier conversion to a Pandas dataframe.
         results.append({
             'event':i,
+            'is_DAR':e.is_DAR,
             'pi_mu_energy':pi_mu_energy,
             'three_plane_E_sum':three_plane_E_sum,
             'file':infile
