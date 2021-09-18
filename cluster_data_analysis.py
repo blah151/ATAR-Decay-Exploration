@@ -37,11 +37,19 @@ pimue_data = pd.read_csv("output_pimue.csv")
 
 #>>>>>>>>>>>>>>>  Cut 3  <<<<<<<<<<<<<<<
 plt.figure()
+#Separate DAR and DIF events.
+pi_mu_energy_PiENu_DAR = pienu_data[pienu_data["is_DAR"] == 1].get("pi_mu_energy")
+pi_mu_energy_PiENu_DIF = pienu_data[pienu_data["is_DAR"] == 0].get("pi_mu_energy")
+pi_mu_energy_PiMuE_DAR = pimue_data[pimue_data["is_DAR"] == 1].get("pi_mu_energy")
+pi_mu_energy_PiMuE_DIF = pimue_data[pimue_data["is_DAR"] == 0].get("pi_mu_energy")
 #use numpy's histogram and hstack functions to ensure both data sets have the same bounds and number of bins.
-pi_mu_energy_PiENu, pi_mu_energy_PiMuE = pienu_data.get("pi_mu_energy"), pimue_data.get("pi_mu_energy")
-bins = np.histogram(np.hstack((pi_mu_energy_PiENu, pi_mu_energy_PiMuE)), bins = 40)[1]
-plt.hist(pi_mu_energy_PiENu, bins = bins, color = "orange", alpha = 0.5, label = "pienu_data")
-plt.hist(pi_mu_energy_PiMuE, bins = bins, color = "blue", alpha = 0.5, label = "pimue_data")
+# pi_mu_energy_PiENu_DAR, pi_mu_energy_PiENu_DIF, pi_mu_energy_PiMuE_DAR, pi_mu_energy_PiMuE_DIF = PiENu_DAR.get("pi_mu_energy"), PiENu_DIF.get("pi_mu_energy"), PiMuE_DAR.get("pi_mu_energy"), PiMuE_DAR.get("pi_mu_energy")
+bins = np.histogram(np.hstack((pi_mu_energy_PiENu_DAR, pi_mu_energy_PiENu_DIF, pi_mu_energy_PiMuE_DAR, pi_mu_energy_PiMuE_DIF)), bins = 40)[1]
+plt.hist(pi_mu_energy_PiENu_DAR, bins = bins, color = "orange", alpha = 0.5, label = "PiENu DAR")
+plt.hist(pi_mu_energy_PiENu_DIF, bins = bins, color = "red", alpha = 0.5, label = "PiENu DIF")
+plt.hist(pi_mu_energy_PiMuE_DAR, bins = bins, color = "blue", alpha = 0.5, label = "PiMuE DAR")
+plt.hist(pi_mu_energy_PiMuE_DIF, bins = bins, color = "cyan", alpha = 0.5, label = "PiMuE DIF")
+
 plt.title("Total Energy Deposited in ATAR by Pions and Muons")
 plt.xlabel("E_Dep in ATAR (MeV)")
 plt.ylabel("Counts")
@@ -54,7 +62,7 @@ plt.legend()
 # print("\nPiENu pi_mu_energy: " + str(pienu_data["pi_mu_energy"].mean()))
 # print("PiMuE pi_mu_energy: " + str(pimue_data["pi_mu_energy"].mean()))
 
-calc_supp_factor(pi_mu_energy_PiENu, pi_mu_energy_PiMuE, 18.67, True)
+calc_supp_factor(pienu_data.get("pi_mu_energy"), pimue_data.get("pi_mu_energy"), 18.67, True)
 
 
 #>>>>>>>>>>>>>>>  Cut 5  <<<<<<<<<<<<<<<
