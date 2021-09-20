@@ -26,7 +26,7 @@ def calc_supp_factor(data_a, data_b, cut_threshold, is_cut_gt):
     print("Suppression factor:", original_data_ratio / cut_data_ratio, "\n")
 
 
-#Plots PiENu and PiMuE events on a histogram and compares their suppression factors.
+#Plots PiENu and PiMuE events on a histogram and compares their suppression factors. Can also compare DARs / DIFs if desired.
 #Params:
 #  cut_var - (Str) Variable whose values we extract from the dataframes. We expect PiENu events and PiMuE events to have distinguishable distributions of this variable.
 #  cut_units - (Str) Shorthand name and units of variable for x-axis label of histogram.
@@ -39,9 +39,25 @@ def plot_cut(cut_var, cut_units, cut_val, title, is_comparing_DAR_DIF, is_cut_gt
     plt.figure()
     cut_var_PiENu = pienu_data.get(cut_var)
     cut_var_PiMuE = pimue_data.get(cut_var)
-    bins = np.histogram(np.hstack((cut_var_PiENu, cut_var_PiMuE)), bins = 40)[1]
-    plt.hist(cut_var_PiENu, bins = bins, color = "green", alpha = 0.5, label = "pienu_data")
-    plt.hist(cut_var_PiMuE, bins = bins, color = "brown", alpha = 0.5, label = "pimue_data")
+
+    #Do 2 plots if simply comparing PiENu to PiMuE, do 4 plots if also splitting data on DAR / DIF.
+    if not is_comparing_DAR_DIF:
+        #use numpy's histogram and hstack functions to ensure both data sets have the same bounds and number of bins.
+        bins = np.histogram(np.hstack((cut_var_PiENu, cut_var_PiMuE)), bins = 40)[1]
+        plt.hist(cut_var_PiENu, bins = bins, color = "orange", alpha = 0.5, label = "pienu_data")
+        plt.hist(cut_var_PiMuE, bins = bins, color = "blue", alpha = 0.5, label = "pimue_data")
+    else:
+        #Separate DAR and DIF events.
+        cut_var_PiENu_DAR = pienu_data[pienu_data["is_DAR"] == 1].get(cut_var)
+        cut_var_PiENu_DIF = pienu_data[pienu_data["is_DAR"] == 0].get(cut_var)
+        cut_var_PiMuE_DAR = pimue_data[pimue_data["is_DAR"] == 1].get(cut_var)
+        cut_var_PiMuE_DIF = pimue_data[pimue_data["is_DAR"] == 0].get(cut_var)
+        bins = np.histogram(np.hstack((cut_var_PiENu_DAR, cut_var_PiENu_DIF, cut_var_PiMuE_DAR, cut_var_PiMuE_DIF)), bins = 40)[1]
+        plt.hist(cut_var_PiENu_DAR, bins = bins, color = "orange", alpha = 0.5, label = "PiENu DAR")
+        plt.hist(cut_var_PiENu_DIF, bins = bins, color = "red", alpha = 0.5, label = "PiENu DIF")
+        plt.hist(cut_var_PiMuE_DAR, bins = bins, color = "blue", alpha = 0.5, label = "PiMuE DAR")
+        plt.hist(cut_var_PiMuE_DIF, bins = bins, color = "cyan", alpha = 0.5, label = "PiMuE DIF")
+    
     plt.title(title)
     plt.xlabel(cut_units)
     plt.ylabel("Counts")
@@ -54,8 +70,6 @@ def plot_cut(cut_var, cut_units, cut_val, title, is_comparing_DAR_DIF, is_cut_gt
 
 
 
-
-
 #Read data files scp'd from cluster.
 pienu_data = pd.read_csv("output_pienu.csv")
 pimue_data = pd.read_csv("output_pimue.csv")
@@ -63,33 +77,20 @@ pimue_data = pd.read_csv("output_pimue.csv")
 # print(pimue_data.head())
 
 
-#>>>>>>>>>>>>>>>  Cut 3  <<<<<<<<<<<<<<<
-plt.figure()
-#Separate DAR and DIF events.
-pi_mu_energy_PiENu_DAR = pienu_data[pienu_data["is_DAR"] == 1].get("pi_mu_energy")
-pi_mu_energy_PiENu_DIF = pienu_data[pienu_data["is_DAR"] == 0].get("pi_mu_energy")
-pi_mu_energy_PiMuE_DAR = pimue_data[pimue_data["is_DAR"] == 1].get("pi_mu_energy")
-pi_mu_energy_PiMuE_DIF = pimue_data[pimue_data["is_DAR"] == 0].get("pi_mu_energy")
-#use numpy's histogram and hstack functions to ensure both data sets have the same bounds and number of bins.
-bins = np.histogram(np.hstack((pi_mu_energy_PiENu_DAR, pi_mu_energy_PiENu_DIF, pi_mu_energy_PiMuE_DAR, pi_mu_energy_PiMuE_DIF)), bins = 40)[1]
-plt.hist(pi_mu_energy_PiENu_DAR, bins = bins, color = "orange", alpha = 0.5, label = "PiENu DAR")
-plt.hist(pi_mu_energy_PiENu_DIF, bins = bins, color = "red", alpha = 0.5, label = "PiENu DIF")
-plt.hist(pi_mu_energy_PiMuE_DAR, bins = bins, color = "blue", alpha = 0.5, label = "PiMuE DAR")
-plt.hist(pi_mu_energy_PiMuE_DIF, bins = bins, color = "cyan", alpha = 0.5, label = "PiMuE DIF")
+#TODO: Implement cuts 1, 2, and 4.
+#>>>>>>>>>>>>>>>  Cut 1 - Stop in Target (Pion for DAR, Muon for DIF)  <<<<<<<<<<<<<<<
+plot_cut("three_plane_E_sum", "E (MeV)", 1, "Energy Deposited 3 Planes Before Stopping Plane in ATAR", False, False)
 
-plt.title("Total Energy Deposited in ATAR by Pions and Muons")
-plt.xlabel("E_Dep in ATAR (MeV)")
-plt.ylabel("Counts")
-plt.yscale("log")
-#Show where Tristan's cut would be.
-#TODO: Tristan gives a range:  18.67 < E < 19.2.  Is the line below incorrect?
-plt.axvline(18.67, color = "black", label = "Cut")  #Units = MeV
-plt.legend()
+#>>>>>>>>>>>>>>>  Cut 2 - Restricted Stopping Distribution  <<<<<<<<<<<<<<<
+plot_cut("three_plane_E_sum", "E (MeV)", 1, "Energy Deposited 3 Planes Before Stopping Plane in ATAR", False, False)
 
-calc_supp_factor(pienu_data.get("pi_mu_energy"), pimue_data.get("pi_mu_energy"), 18.67, True)
+#>>>>>>>>>>>>>>>  Cut 3 - Pion and Muon Energies  <<<<<<<<<<<<<<<
+plot_cut("pi_mu_energy", "E_Dep in ATAR (MeV)", 18.67, "Total Energy Deposited in ATAR by Pions and Muons", True, True)
 
+#>>>>>>>>>>>>>>>  Cut 4 - Tracking Cut  <<<<<<<<<<<<<<<
+plot_cut("three_plane_E_sum", "E (MeV)", 1, "Energy Deposited 3 Planes Before Stopping Plane in ATAR", False, False)
 
-#>>>>>>>>>>>>>>>  Cut 5  <<<<<<<<<<<<<<<
-plot_cut("three_plane_E_sum", "E (MeV)", 1.88, "Energy Deposited 3 Planes Before Stopping Plane in ATAR", False, False)
+#>>>>>>>>>>>>>>>  Cut 5 - EPreStop Cut  <<<<<<<<<<<<<<<
+plot_cut("three_plane_E_sum", "E (MeV)", 1, "Energy Deposited 3 Planes Before Stopping Plane in ATAR", False, False)
 
 plt.show()
