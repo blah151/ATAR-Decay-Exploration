@@ -77,12 +77,18 @@ pimue_data = pd.read_csv("output_pimue.csv")
 # print(pimue_data.head())
 
 
-#TODO: Implement cuts 1, 2, and 4.
+#TODO: Implement cuts 1 and 4.
 #>>>>>>>>>>>>>>>  Cut 1 - Stop in Target (Pion for DAR, Muon for DIF)  <<<<<<<<<<<<<<<
 plot_cut("three_plane_E_sum", "E (MeV)", 1, "Energy Deposited 3 Planes Before Stopping Plane in ATAR", False, False)
 
+#TODO: Add PiMuE data (needs to be SCP'd over first) and calculate suppression factor.
 #>>>>>>>>>>>>>>>  Cut 2 - Restricted Stopping Distribution  <<<<<<<<<<<<<<<
-plot_cut("three_plane_E_sum", "E (MeV)", 1, "Energy Deposited 3 Planes Before Stopping Plane in ATAR", False, False)
+# plot_cut("is_restricted_stop", "E (MeV)", 1, "Energy Deposited 3 Planes Before Stopping Plane in ATAR", False, False)
+is_restricted_stop_PiENu = pienu_data.get("is_restricted_stop")
+# is_restricted_stop_PiMuE = pimue_data.get("is_restricted_stop")
+cut_is_restricted_stop_PiENu = is_restricted_stop_PiENu[is_restricted_stop_PiENu]
+# cut_is_restricted_stop_PiMuE = is_restricted_stop_PiMuE[is_restricted_stop_PiMuE]
+
 
 #>>>>>>>>>>>>>>>  Cut 3 - Pion and Muon Energies  <<<<<<<<<<<<<<<
 plot_cut("pi_mu_energy", "E_Dep in ATAR (MeV)", 18.67, "Total Energy Deposited in ATAR by Pions and Muons", True, True)
