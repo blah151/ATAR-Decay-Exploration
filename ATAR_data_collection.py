@@ -136,11 +136,12 @@ def process_file(infile, is_PiENu):
 
     results = []
 
+    #TODO: Cuts out of order makes the most sense (e.g., to get dz/dt for Cut 2)?
     #For each of the event indices specified, process the corresponding event and save useful parameters from it for later analysis.
     for i in range(len(event_indices)):
         e = process_event(t, event_indices[i])
-        
-        #Cut 3: pion and muon energies
+
+        #>>>>>>>>>>  Cut 3: Pion and Muon Energies  <<<<<<<<<<
         pi_mu_energy = sum(e.E_data)
         #If a positron was present, we must subtract all energy deposited by it per Tristan's cut.
         if t.has_positron:
@@ -148,31 +149,53 @@ def process_file(infile, is_PiENu):
                 if e.pixel_pdgs[i] == -11:
                     pi_mu_energy -= e.E_data[i]
 
-        #Cut 5: energy 3 planes before stopping plane
+        #>>>>>>>>>>  Cut 5: Energy 3 Planes Before Stopping Plane  <<<<<<<<<<
+        last_x, last_y = 0, 0
+        stop_x, stop_y, stopping_plane = 0, 0, 0
         three_plane_E_sum = 0
         for i in range(0, len(e.pixel_pdgs) - 2):
             dzdt = (e.z_data[i + 2] - e.z_data[i]) / (e.t_data[i + 2] - e.t_data[i])
 
+            #Store last x and y each loop so we don't get stuck with any nan values in Cut 2.
+            if e.x_data[i] is not np.nan:
+                last_x = e.x_data[i]
+            if e.y_data[i] is not np.nan:
+                last_y = e.y_data[i]
+
             #We know we have found the stopping plane if the particle is a pion or antimuon and has stopped moving in z. Also only record a value for the three plane
             #sum if we are more than a few time intervals in (a pion just sitting there for a few frames in the target deposits no energy anyway).
             if (e.pixel_pdgs[i] == 211 or e.pixel_pdgs[i] == -13) and abs(dzdt) < 1 and i >= 4:
+                stop_x, stop_y, stopping_plane = last_x, last_y, e.z_data[i]
                 three_plane_E_sum = e.E_data[i - 2] + e.E_data[i - 3] + e.E_data[i - 4]
+        
+        #>>>>>>>>>>  Cut 2: Restricted Stopping Distribution  <<<<<<<<<<
+        #We already have the stopping plane info from Cut 5 to use here.
+        #Math - planes are 0.12mm thick, 100 strips are 2cm wide (1 strip = 0.2mm)
+        is_within_x = (50 - 8/0.2) < stop_x and stop_x < (50 + 8/0.2)
+        is_within_y = (50 - 8/0.2) < stop_y and stop_y < (50 + 8/0.2)
+        is_within_z = (3/0.12) < stopping_plane and stopping_plane < (4/0.12)
+        
+        if is_within_x and is_within_y and is_within_z:
+            is_restricted_stop = True
+        else:
+            is_restricted_stop = False
 
         #Add information from event to results for easier conversion to a Pandas dataframe.
         results.append({
             'event':i,
             'is_DAR':e.is_DAR,
+            'is_restricted_stop': is_restricted_stop,
             'pi_mu_energy':pi_mu_energy,
             'three_plane_E_sum':three_plane_E_sum,
             'file':infile
-        })                         # TODO:  Why are we getting segmentation violations and failures to print output when elements are lists?  Perhaps memory overflow?
+        })
 
     return results
 
 
 def main():
     # Selects whether we want to store data for PiENu or PiMuE events, which we will compare later.
-    is_PiENu = False
+    is_PiENu = True
 
     # python test.py arg arg2 arg3
                     #^^^^^^^^^^^^^
