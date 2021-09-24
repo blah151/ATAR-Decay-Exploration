@@ -161,30 +161,23 @@ def process_file(infile, is_PiENu):
                 last_x = e.x_data[i]
             if e.y_data[i] is not np.nan:
                 last_y = e.y_data[i]
-
+            
+            '''and e.is_DAR'''   '''and not e.is_DAR'''
             #We know we have found the stopping plane if the particle is a pion or antimuon and has stopped moving in z. Also only record a value for the three plane
             #sum if we are more than a few time intervals in (a pion just sitting there for a few frames in the target deposits no energy anyway).
-            if (e.pixel_pdgs[i] == 211 or e.pixel_pdgs[i] == -13) and abs(dzdt) < 1 and i >= 4:
+            if ((e.pixel_pdgs[i] == 211) or (e.pixel_pdgs[i] == -13)) and abs(dzdt) < 1 and i >= 4:
+                #>>>>>>>>>>  Cut 2: Restricted Stopping Distribution  <<<<<<<<<<
+                #We already have the stopping plane info from Cut 5 to use here.
                 stop_x, stop_y, stopping_plane = last_x, last_y, e.z_data[i]
                 three_plane_E_sum = e.E_data[i - 2] + e.E_data[i - 3] + e.E_data[i - 4]
-        
-        #>>>>>>>>>>  Cut 2: Restricted Stopping Distribution  <<<<<<<<<<
-        #We already have the stopping plane info from Cut 5 to use here.
-        #Math - planes are 0.12mm thick, 100 strips are 2cm wide (1 strip = 0.2mm)
-        is_within_x = (50 - 8/0.2) < stop_x and stop_x < (50 + 8/0.2)
-        is_within_y = (50 - 8/0.2) < stop_y and stop_y < (50 + 8/0.2)
-        is_within_z = (3/0.12) < stopping_plane and stopping_plane < (4/0.12)
-        
-        if is_within_x and is_within_y and is_within_z:
-            is_restricted_stop = True
-        else:
-            is_restricted_stop = False
 
         #Add information from event to results for easier conversion to a Pandas dataframe.
         results.append({
             'event':i,
             'is_DAR':e.is_DAR,
-            'is_restricted_stop': is_restricted_stop,
+            'stop_x': stop_x,
+            'stop_y': stop_y,
+            'stop_z': stopping_plane,
             'pi_mu_energy':pi_mu_energy,
             'three_plane_E_sum':three_plane_E_sum,
             'file':infile
