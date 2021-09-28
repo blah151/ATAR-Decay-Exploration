@@ -3,6 +3,7 @@ import numpy as np
 from matplotlib import pyplot as plt
 from Event import Event
 import pandas as pd
+import seaborn as sns
 
 
 #Calculates and displays the suppression factor for the two given data sets. User must specify whether the cut is above or below the given threshold.
@@ -25,6 +26,7 @@ def calc_supp_factor(data_a, data_b, cut_range):
 
     original_data_ratio = len(data_b) / len(data_a)
     cut_data_ratio = len(cut_b) / len(cut_a)
+    print(">>> " + data_a.name + " <<<")
     print("Original PiMuE / PiENu ratio: ", original_data_ratio)
     print("Cut PiMuE / PiENu ratio: ", cut_data_ratio)
     print("Suppression factor:", original_data_ratio / cut_data_ratio, "\n")
@@ -58,19 +60,27 @@ def plot_cut(cut_var, cut_units, cut_range, title, is_comparing_DAR_DIF):
         cut_var_PiMuE_DAR = pimue_data[pimue_data["is_DAR"] == 1].get(cut_var)
         cut_var_PiMuE_DIF = pimue_data[pimue_data["is_DAR"] == 0].get(cut_var)
         bins = np.histogram(np.hstack((cut_var_PiENu_DAR, cut_var_PiENu_DIF, cut_var_PiMuE_DAR, cut_var_PiMuE_DIF)), bins = 40)[1]
-        plt.hist(cut_var_PiENu_DAR, bins = bins, color = "orange", alpha = 0.5, label = "PiENu DAR")
+        # plt.hist(cut_var_PiENu_DAR, bins = bins, color = "orange", alpha = 0.5, label = "PiENu DAR")
         plt.hist(cut_var_PiENu_DIF, bins = bins, color = "red", alpha = 0.5, label = "PiENu DIF")
-        plt.hist(cut_var_PiMuE_DAR, bins = bins, color = "blue", alpha = 0.5, label = "PiMuE DAR")
-        plt.hist(cut_var_PiMuE_DIF, bins = bins, color = "cyan", alpha = 0.5, label = "PiMuE DIF")
+        # plt.hist(cut_var_PiMuE_DAR, bins = bins, color = "blue", alpha = 0.5, label = "PiMuE DAR")
+        # plt.hist(cut_var_PiMuE_DIF, bins = bins, color = "cyan", alpha = 0.5, label = "PiMuE DIF")
+
+        # axes = sns.histplot(data=cut_var_PiENu_DIF, bins=bins, stat="count", alpha= 0.5, kde=True, linewidth=0.5,
+        #           line_kws=dict(color='black', alpha=0.5, linewidth=1.5, label='KDE'))
+
+        # Draw the density plot
+        sns.distplot(cut_var_PiENu_DIF, hist = False, kde = True,
+                    kde_kws = {'linewidth': 3},
+                    label = "PiENu DIF")
     
     plt.title(title)
     plt.xlabel(cut_units)
     plt.ylabel("Counts")
     plt.yscale("log")
     if cut_range[0] != -1:
-        plt.axvline(cut_range[0], color = "black", label = "Cut")
+        plt.axvline(cut_range[0], color = "black", label = "Cut Lower")
     if cut_range[1] != -1:
-        plt.axvline(cut_range[1], color = "black", label = "Cut")
+        plt.axvline(cut_range[1], color = "black", label = "Cut Upper")
     plt.legend()
 
     calc_supp_factor(cut_var_PiENu, cut_var_PiMuE, cut_range)
