@@ -1,9 +1,11 @@
 import ROOT as r
 import numpy as np
 from matplotlib import pyplot as plt
+from numpy.core.function_base import linspace
 from Event import Event
 import pandas as pd
 import seaborn as sns
+from scipy import stats
 
 
 #Calculates and displays the suppression factor for the two given data sets. User must specify whether the cut is above or below the given threshold.
@@ -55,23 +57,33 @@ def plot_cut(cut_var, cut_units, cut_range, title, is_comparing_DAR_DIF):
         plt.hist(cut_var_PiMuE, bins = bins, color = "blue", alpha = 0.5, label = "pimue_data")
     else:
         #Separate DAR and DIF events.
-        cut_var_PiENu_DAR = pienu_data[pienu_data["is_DAR"] == 1].get(cut_var)
-        cut_var_PiENu_DIF = pienu_data[pienu_data["is_DAR"] == 0].get(cut_var)
-        cut_var_PiMuE_DAR = pimue_data[pimue_data["is_DAR"] == 1].get(cut_var)
-        cut_var_PiMuE_DIF = pimue_data[pimue_data["is_DAR"] == 0].get(cut_var)
-        bins = np.histogram(np.hstack((cut_var_PiENu_DAR, cut_var_PiENu_DIF, cut_var_PiMuE_DAR, cut_var_PiMuE_DIF)), bins = 40)[1]
-        # plt.hist(cut_var_PiENu_DAR, bins = bins, color = "orange", alpha = 0.5, label = "PiENu DAR")
-        plt.hist(cut_var_PiENu_DIF, bins = bins, color = "red", alpha = 0.5, label = "PiENu DIF")
-        # plt.hist(cut_var_PiMuE_DAR, bins = bins, color = "blue", alpha = 0.5, label = "PiMuE DAR")
-        # plt.hist(cut_var_PiMuE_DIF, bins = bins, color = "cyan", alpha = 0.5, label = "PiMuE DIF")
+        # cut_var_PiENu_DAR = pienu_data[pienu_data["is_DAR"] == 1].get(cut_var)
+        # cut_var_PiENu_DIF = pienu_data[pienu_data["is_DAR"] == 0].get(cut_var)
+        # cut_var_PiMuE_DAR = pimue_data[pimue_data["is_DAR"] == 1].get(cut_var)
+        # cut_var_PiMuE_DIF = pimue_data[pimue_data["is_DAR"] == 0].get(cut_var)
 
-        # axes = sns.histplot(data=cut_var_PiENu_DIF, bins=bins, stat="count", alpha= 0.5, kde=True, linewidth=0.5,
-        #           line_kws=dict(color='black', alpha=0.5, linewidth=1.5, label='KDE'))
+        cut_vars = [pienu_data[pienu_data["is_DAR"] == 1].get(cut_var), pienu_data[pienu_data["is_DAR"] == 0].get(cut_var), 
+                    pimue_data[pimue_data["is_DAR"] == 1].get(cut_var), pimue_data[pimue_data["is_DAR"] == 0].get(cut_var)]
+        cut_colors = ["orange", "red", "blue", "cyan"]
+        cut_labels = ["PiENu DAR", "PiENu DIF", "PiMuE DAR", "PiMuE DIF"]
 
-        # Draw the density plot
-        sns.distplot(cut_var_PiENu_DIF, hist = False, kde = True,
+        '''Array of cut data. Order:
+            0)PiENu_DAR
+            1)PiENu_DIF
+            2)PiMuE_DAR
+            3)PiMuE_DIF
+        '''
+
+        #Calculate bins from combined data.
+        bins = np.histogram(np.hstack((cut_vars[0], cut_vars[1], cut_vars[2], cut_vars[3])), bins = 40)[1]
+        curve_x = linspace(int(bins[0]), int(bins[-1]), 40)
+        print(curve_x)
+
+        #Iterate over all 4 cut variables and plot them.
+        for i in range(0, len(cut_vars)):
+            sns.distplot(cut_vars[i], hist = False, kde = True,
                     kde_kws = {'linewidth': 3},
-                    label = "PiENu DIF")
+                    label = cut_labels[i], color=cut_colors[i])
     
     plt.title(title)
     plt.xlabel(cut_units)
