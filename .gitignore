@@ -1,3 +1,4 @@
 #Ensures we don't push large .root files or .csv files.
 *.root
 *.csv
+*.gdml

@@ -5,6 +5,7 @@ import ROOT as r
 import numpy as np
 from matplotlib import pyplot as plt
 from Event import Event
+import calo_analysis
 
 
 '''
@@ -14,7 +15,7 @@ x and y is an n x 2 matrix, where the first column contains the times correspond
 Also extract the z (plane #) vs. time data. The third element of the tuples contained in this list and the x and y lists will contain corresponding colors to represent
 when particles have decayed.
 '''
-def process_event(tree, event_index):
+def process_event(tree, tree_calo, event_index):
     #Get the specified entry so we can extract data from it.
     tree.GetEntry(event_index)
 
@@ -62,6 +63,13 @@ def process_event(tree, event_index):
 
     #Keep track of maximum energy deposited per plane in this event.
     event.max_E = max(event.E_per_plane)
+
+
+    tree_calo.GetEntry(event_index)
+
+    #Extract all (theta, phi) pairs from the calorimeter tree.
+    event.thetas = tree_calo.theta
+    event.phis = tree_calo.phi
 
     return event
 
@@ -136,9 +144,9 @@ def plot_with_color_legend(x_coords, y_coords, pixel_pdgs):
 #Display 0 to num_planes on plots including the z variable.
 def plot_event(event, num_planes):
 
-    plt.figure(figsize = (25, 6))
+    plt.figure(figsize = (25, 15))
 
-    plt.subplot(1,4,1)
+    plt.subplot(2,4,1)
 
     plot_with_color_legend(event.z_data, event.x_data, event.pixel_pdgs)
     plt.title("x vs. z")
@@ -148,7 +156,7 @@ def plot_event(event, num_planes):
     plt.xlim(0, num_planes)
     plt.ylim(0, 100)
 
-    plt.subplot(1,4,2)
+    plt.subplot(2,4,2)
     plot_with_color_legend(event.z_data, event.y_data, event.pixel_pdgs)
     plt.title("y vs. z")
     plt.xlabel("z (plane number)")
@@ -156,7 +164,7 @@ def plot_event(event, num_planes):
     plt.xlim(0, num_planes)
     plt.ylim(0, 100)
 
-    plt.subplot(1,4,3)
+    plt.subplot(2,4,3)
     plot_with_color_legend(event.t_data, event.z_data, event.pixel_pdgs)
     plt.title("z vs. t")
     plt.xlabel("t (ns)")
@@ -164,7 +172,7 @@ def plot_event(event, num_planes):
     # plt.xlim(0, 60)
     plt.ylim(0, num_planes)
 
-    plt.subplot(1,4,4)
+    plt.subplot(2,4,4)
 
     plt.scatter(event.z_data, event.E_data, 10, label = "e_dep")
     plt.scatter(range(50), event.E_per_plane, 10, "black", label = "e_dep per plane")
@@ -173,6 +181,17 @@ def plot_event(event, num_planes):
     plt.ylabel("Energy (MeV / plane)")
     plt.legend()
     #plt.xlim(0, num_planes)
+
+    #Here, we plot the calo analysis data.
+    plt.subplot(2,4,5)
+
+    calo_analysis.calo_edep_plot()
+
+    # plt.hist2d(event.thetas, event.phis, bins = 50)
+    plt.xlabel("Theta (rad)")
+    plt.ylabel("Phi (rad)")
+    plt.title("Energy Deposited in Calorimeter SiPMs by Theta vs. Phi")
+    plt.colorbar(orientation="vertical")
 
     plt.subplots_adjust(left = 0.1,
                         bottom = 0.1, 
@@ -214,7 +233,7 @@ def select_events(tree, is_event_DAR, num_events):
 #display_plots = True / False controls whether event data is plotted or not.
 #num_events allows us to plot multiple events with the specified conditions from the tree.\
 #gap_times = True / False means we should show / not show gap times between decays if any are present.
-def event_visualization(tree, is_event_DAR, display_text_output, display_outliers, num_events):
+def event_visualization(tree, tree_calo, is_event_DAR, display_text_output, display_outliers, num_events):
     
     #Get num_events indices for events that satisfy DAR / DIF criteria.
     event_indices = select_events(tree, is_event_DAR, num_events)
@@ -227,7 +246,7 @@ def event_visualization(tree, is_event_DAR, display_text_output, display_outlier
 
     #For each of the event indices specified, process the corresponding event and display useful output if we want, then plot it.
     for i in range(len(event_indices)):
-        e = process_event(tree, event_indices[i])
+        e = process_event(tree, tree_calo, event_indices[i])
 
         if display_text_output:
             display_event(e)
@@ -317,17 +336,18 @@ def compare_gap_times(gap_times_DIF, gap_times_DAR, num_bins):
 #Compare energy deposition and gap times of DARs and DIFs for pion --> e data.
 PiEfile = r.TFile("pienux_out_stripped.root")
 PiEtree = PiEfile.Get("atar")
-# print([x.GetName() for x in tree.GetListOfBranches()])
-# print("\n")
+PiEtree_calo = PiEfile.Get("calorimeter")
+print([x.GetName() for x in PiEtree_calo.GetListOfBranches()])
+print("\n")
 print("\n\nPion --> e Data\n\n")
-(max_Es_DIF, gap_times_DIF) = event_visualization(PiEtree, 0, False, False, 100)
-(max_Es_DAR, gap_times_DAR) = event_visualization(PiEtree, 1, False, False, 100)
-compare_max_edep(max_Es_DIF, max_Es_DAR, 20)
-compare_gap_times(gap_times_DIF, gap_times_DAR, 20)
+# (max_Es_DIF, gap_times_DIF) = event_visualization(PiEtree, 0, False, False, 100)
+# (max_Es_DAR, gap_times_DAR) = event_visualization(PiEtree, 1, False, False, 100)
+# compare_max_edep(max_Es_DIF, max_Es_DAR, 20)
+# compare_gap_times(gap_times_DIF, gap_times_DAR, 20)
 
 
 #Just look at outlier plots for the pion --> e data.
-out_data = event_visualization(PiEtree, 0, False, True, 100)
+out_data = event_visualization(PiEtree, PiEtree_calo, 0, False, True, 100)
 
 
 #Compare energy deposition and gap times of DARs and DIFs for pion --> muon --> e data.
@@ -336,11 +356,11 @@ PiMuEtree = PiMuEfile.Get("atar")
 # print([x.GetName() for x in tree.GetListOfBranches()])
 # print("\n")
 print("\n\nPion --> Muon --> e Data\n\n")
-(max_Es_DIF, gap_times_DIF) = event_visualization(PiMuEtree, 0, False, False, 50)
-(max_Es_DAR, gap_times_DAR) = event_visualization(PiMuEtree, 1, False, False, 50)
-compare_max_edep(max_Es_DIF, max_Es_DAR, 20)
-compare_gap_times(gap_times_DIF, gap_times_DAR, 20)
+# (max_Es_DIF, gap_times_DIF) = event_visualization(PiMuEtree, 0, False, False, 50)
+# (max_Es_DAR, gap_times_DAR) = event_visualization(PiMuEtree, 1, False, False, 50)
+# compare_max_edep(max_Es_DIF, max_Es_DAR, 20)
+# compare_gap_times(gap_times_DIF, gap_times_DAR, 20)
 
 
 #Just look at outlier plots for the pion --> muon --> e data.
-out_data = event_visualization(PiMuEtree, 0, False, True, 50)
+out_data = event_visualization(PiMuEtree, PiEtree_calo, 0, False, True, 50)
