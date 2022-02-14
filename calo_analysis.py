@@ -1,6 +1,7 @@
 from operator import indexOf
 import numpy as np
 from matplotlib import pyplot as plt
+import re
 
 # This is where the preliminary calo analysis code goes. Some representative output files from the simulation, including GDML angle data from photon impacts in the calo
 # should be placed in this folder. The calo data is then analyzed via various methods below.
@@ -59,13 +60,16 @@ def get_rotations_from_gdml(geom_file, key='rotation name="'):
         for line in gf:
             if(key in line and 'wrap' not in line):
                 # print(line.split())
-                crystal_id = int( line.split()[1].split("_")[-1].split("in")[0] )
+                #TODO Why are we getting "list index out of range" now that we are using calo_plus_ATAR_PEN.gdml?
+                id_delimited = re.findall("_\d{5,7}in", line)[0]
+                crystal_id = int( id_delimited.split("_")[-1].split("in")[0] )
                 x = float( line.split()[2].split('"')[1] )
                 y = float( line.split()[3].split('"')[1] )
                 z = float( line.split()[4].split('"')[1] )
                 # print(crystal_id, x, y, z)
                 # if(crystal_id < 304000):
                 rotations[crystal_id] = (-x,-y,-z)
+                # print(crystal_id)
     return rotations
 
 def convert_to_spherical(coords):
@@ -107,23 +111,23 @@ def gdml_rotations_to_theta_phi(rotations):
 
 
 # plot a 2d histogram of energy deposited in each SIPM "pixel" in the calorimeter.
-def calo_edep_plot():
+def get_calo_rotations():
     #Get information about where all our crystals are. Using this info, we later know at what locations to get the edep values from the corresponding spots
     #on the calorimeter.
-    rotations = get_rotations_from_gdml('./calo_only_PEN.gdml', key='rotation name="')
+    # TODO: Note - if we use calo_plus_ATAR_PEN.gdml, then we get weird lines where crystals (shouldn't?) be and an overflow error. Why is this?
+    rotations = get_rotations_from_gdml('./calo_plus_ATAR_PEN.gdml', key='rotation name="')
     # print(rotations)
-    positions = get_rotations_from_gdml('./calo_only_PEN.gdml', key='position name="')
+    positions = get_rotations_from_gdml('./calo_plus_ATAR_PEN.gdml', key='position name="')
     positions_sph = {x:convert_to_spherical(positions[x]) for x in positions}
     # print(positions_sph)
     crys_rs, crys_thetas, crys_phis = zip(*[positions_sph[x] for x in positions_sph])
-    print("Length of thetas:", len(crys_thetas))
+    # print("Length of thetas:", len(crys_thetas))
     # plt.scatter(crys_thetas, crys_phis)
     # plt.xlabel("Theta (rad)")
     # plt.ylabel("Phi (rad)")
     # plt.title("Energy Deposited in Calorimeter SiPMs by Theta vs. Phi")
-    # plt.colorbar(orientation="vertical")
     # plt.show()
 
-    return
+    return positions
 
-calo_edep_plot()
+get_calo_rotations()

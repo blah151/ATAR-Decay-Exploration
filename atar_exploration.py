@@ -16,8 +16,9 @@ Also extract the z (plane #) vs. time data. The third element of the tuples cont
 when particles have decayed.
 '''
 def process_event(tree, tree_calo, event_index):
-    #Get the specified entry so we can extract data from it.
+    #Get the specified entries from our trees so we can extract data from them.
     tree.GetEntry(event_index)
+    tree_calo.GetEntry(event_index)
 
     #Store pixel hits for the entry printed above in which a pion didn't decay at rest.
     pixel_times = tree.pixel_time
@@ -64,12 +65,25 @@ def process_event(tree, tree_calo, event_index):
     #Keep track of maximum energy deposited per plane in this event.
     event.max_E = max(event.E_per_plane)
 
-
-    tree_calo.GetEntry(event_index)
-
     #Extract all (theta, phi) pairs from the calorimeter tree.
-    event.thetas = tree_calo.theta
-    event.phis = tree_calo.phi
+    crys_rots = calo_analysis.get_calo_rotations()
+    #Get the IDs of the crystals that were hit at those (theta, phi) pairs from the calorimeter tree.
+    event.crystal_ids = list(tree_calo.crystal)
+    event.calo_edep = list(tree_calo.edep)
+
+    print("crystal IDs: ", event.crystal_ids)
+    print("edep: ", event.calo_edep)
+    print("crys_rots keys: ", crys_rots.keys())
+
+    #Use the information above to get the energies deposited from the corresponding crystals.
+    for calo_id in event.crystal_ids:
+        #Get the index of our calo ID in order to locate the corresponding energy deposition from the calo tree.
+        id_index = event.crystal_ids.index(calo_id)
+
+        #Only add the current crystal to the pile if there was a significant energy deposit at its location. Also check to see if only 1 calo entry
+        #is present - in this case, the calo ID is marked as a single volume and we just get 1000.
+        if (tree_calo.edep[id_index] > 0.01) and len(event.crystal_ids) > 1:
+            event.edep_theta_phis.append(crys_rots[calo_id])
 
     return event
 
@@ -185,7 +199,12 @@ def plot_event(event, num_planes):
     #Here, we plot the calo analysis data.
     plt.subplot(2,4,5)
 
-    calo_analysis.calo_edep_plot()
+    print("event.edep_theta_phis:", event.edep_theta_phis)
+    # plt.scatter(crys_thetas, crys_phis)
+    # plt.xlabel("Theta (rad)")
+    # plt.ylabel("Phi (rad)")
+    # plt.title("Energy Deposited in Calorimeter SiPMs by Theta vs. Phi")
+    # plt.show()
 
     # plt.hist2d(event.thetas, event.phis, bins = 50)
     plt.xlabel("Theta (rad)")
@@ -334,7 +353,7 @@ def compare_gap_times(gap_times_DIF, gap_times_DAR, num_bins):
 
 
 #Compare energy deposition and gap times of DARs and DIFs for pion --> e data.
-PiEfile = r.TFile("pienux_out_stripped.root")
+PiEfile = r.TFile("pienux_out.root_stripped.root")
 PiEtree = PiEfile.Get("atar")
 PiEtree_calo = PiEfile.Get("calorimeter")
 print([x.GetName() for x in PiEtree_calo.GetListOfBranches()])

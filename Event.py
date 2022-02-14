@@ -10,6 +10,9 @@ max_E - maximum energy deposited over all planes.
 gap_times - any large time gaps in the data, which signal a decay at rest.
 thetas - from calorimeter, represents theta values at which energy is deposited.
 phis - from calorimeter, represents phi values at which energy is deposited.
+crystal ids - a list of 6-digit numbers, the means by which we identify in which crystals energy is deposited.
+calo_edep - energy deposited at each Calo ID location.
+edep_theta_phis - coordinate pairs (theta, phi) that we will plot later.
 '''
 
 import numpy as np
@@ -28,3 +31,6 @@ class Event():
         self.gap_times = []
         self.thetas = []
         self.phis = []
+        self.crystal_ids = []
+        self.calo_edep = []
+        self.edep_theta_phis = []
