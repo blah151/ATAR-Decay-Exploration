@@ -61,15 +61,17 @@ def get_rotations_from_gdml(geom_file, key='rotation name="'):
             if(key in line and 'wrap' not in line):
                 # print(line.split())
                 #TODO Why are we getting "list index out of range" now that we are using calo_plus_ATAR_PEN.gdml?
-                id_delimited = re.findall("_\d{5,7}in", line)[0]
-                crystal_id = int( id_delimited.split("_")[-1].split("in")[0] )
-                x = float( line.split()[2].split('"')[1] )
-                y = float( line.split()[3].split('"')[1] )
-                z = float( line.split()[4].split('"')[1] )
-                # print(crystal_id, x, y, z)
-                # if(crystal_id < 304000):
-                rotations[crystal_id] = (-x,-y,-z)
-                # print(crystal_id)
+                #Only try to get a 5-digit index if the line has one in the first place.
+                if re.search("_\d{5,7}in", line) != None:
+                    id_delimited = re.findall("_\d{5,7}in", line)[0]
+                    crystal_id = int( id_delimited.split("_")[-1].split("in")[0] )
+                    x = float( line.split()[2].split('"')[1] )
+                    y = float( line.split()[3].split('"')[1] )
+                    z = float( line.split()[4].split('"')[1] )
+                    # print(crystal_id, x, y, z)
+                    # if(crystal_id < 304000):
+                    rotations[crystal_id] = (-x,-y,-z)
+                    # print(crystal_id)
     return rotations
 
 def convert_to_spherical(coords):

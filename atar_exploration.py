@@ -81,7 +81,7 @@ def process_event(tree, tree_calo, event_index):
         id_index = event.crystal_ids.index(calo_id)
 
         #Only add the current crystal to the pile if there was a significant energy deposit at its location. Also check to see if only 1 calo entry
-        #is present - in this case, the calo ID is marked as a single volume and we just get 1000.
+        #is present - in this case, the calo ID is marked as a single volume and we just get 1000, which we don't want to count.
         if (tree_calo.edep[id_index] > 0.01) and len(event.crystal_ids) > 1:
             event.edep_theta_phis.append(crys_rots[calo_id])
 
