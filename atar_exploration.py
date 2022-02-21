@@ -1,6 +1,7 @@
 #Note: Data collection functionality in this file is currently being moved over to the cluster.
 #This is a script version of atar_exploration.ipynb to be run via the command line.
 
+from logging.config import IDENTIFIER
 import ROOT as r
 import numpy as np
 from matplotlib import pyplot as plt
@@ -66,24 +67,44 @@ def process_event(tree, tree_calo, event_index):
     event.max_E = max(event.E_per_plane)
 
     #Extract all (theta, phi) pairs from the calorimeter tree.
-    crys_rots = calo_analysis.get_calo_rotations()
+    global_crys_dict = calo_analysis.get_crystal_data()
     #Get the IDs of the crystals that were hit at those (theta, phi) pairs from the calorimeter tree.
     event.crystal_ids = list(tree_calo.crystal)
     event.calo_edep = list(tree_calo.edep)
 
     print("crystal IDs: ", event.crystal_ids)
     print("edep: ", event.calo_edep)
-    print("crys_rots keys: ", crys_rots.keys())
 
-    #Use the information above to get the energies deposited from the corresponding crystals.
-    for calo_id in event.crystal_ids:
-        #Get the index of our calo ID in order to locate the corresponding energy deposition from the calo tree.
-        id_index = event.crystal_ids.index(calo_id)
+    # Use the IDs (tree_calo.crystal) to get the corresponding values from the dictionary of (ID: (r, theta, phi)) values (global_crys_dict).
+    r_theta_phis = []
+    for ID in event.crystal_ids:
+        r_theta_phis.append(global_crys_dict.get(ID))
 
-        #Only add the current crystal to the pile if there was a significant energy deposit at its location. Also check to see if only 1 calo entry
-        #is present - in this case, the calo ID is marked as a single volume and we just get 1000, which we don't want to count.
-        if (tree_calo.edep[id_index] > 0.01) and len(event.crystal_ids) > 1:
-            event.edep_theta_phis.append(crys_rots[calo_id])
+    print("r_theta_phis: ", r_theta_phis)
+
+    # TODO
+    # plot a 2d histogram of energy deposited in each SIPM "pixel" in the calorimeter.
+    if len(event.crystal_ids) > 1:
+        color_range = event.calo_edep
+        plt.scatter([coords[1] for coords in r_theta_phis], [coords[2] for coords in r_theta_phis], c=color_range, cmap="Reds")
+        # plt.hist2d([coords[1] for coords in r_theta_phis], [coords[2] for coords in r_theta_phis], range=[[0, 2*np.pi], [-np.pi, np.pi]])
+        plt.xlabel("Theta (rad)")
+        plt.ylabel("Phi (rad)")
+        plt.title("Energy Deposited in Calorimeter SiPMs by Theta vs. Phi")
+        cbar = plt.colorbar()
+        cbar.set_label('Amount of Energy Deposited')
+        plt.show()
+
+
+    # #Use the information above to get the energies deposited from the corresponding crystals.
+    # for calo_id in event.crystal_ids:
+    #     #Get the index of our calo ID in order to locate the corresponding energy deposition from the calo tree.
+    #     id_index = event.crystal_ids.index(calo_id)
+
+    #     #Only add the current crystal to the pile if there was a significant energy deposit at its location. Also check to see if only 1 calo entry
+    #     #is present - in this case, the calo ID is marked as a single volume and we just get 1000, which we don't want to count.
+    #     if (tree_calo.edep[id_index] > 0.01) and len(event.crystal_ids) > 1:
+    #         event.edep_theta_phis.append(global_crys_dict.get(ID))
 
     return event
 
@@ -267,12 +288,13 @@ def event_visualization(tree, tree_calo, is_event_DAR, display_text_output, disp
     for i in range(len(event_indices)):
         e = process_event(tree, tree_calo, event_indices[i])
 
-        if display_text_output:
-            display_event(e)
+        # TODO Uncomment and fix option choice on user interface.
+        # if display_text_output:
+        #     display_event(e)
         
-        #Show events with abnormally large energies if we want.
-        if display_outliers and e.max_E > 7.5:
-            plot_event(e, 50)
+        # #Show events with abnormally large energies if we want.
+        # if display_outliers and e.max_E > 7.5:
+        #     plot_event(e, 50)
 
         for gt in e.gap_times:
             gap_times.append(gt)
