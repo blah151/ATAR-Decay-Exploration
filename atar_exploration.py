@@ -83,28 +83,21 @@ def process_event(tree, tree_calo, event_index):
     print("r_theta_phis: ", r_theta_phis)
 
     # TODO
-    # plot a 2d histogram of energy deposited in each SIPM "pixel" in the calorimeter.
+    # plot a 2d histogram of energy deposited in each SIPM "pixel" in the calorimeter. Also check to see if only 1 calo entry
+    # is present - in this case, the calo ID could be marked as a single volume and we just get 1000, which we don't want to count.
     if len(event.crystal_ids) > 1:
         color_range = event.calo_edep
-        plt.scatter([coords[1] for coords in r_theta_phis], [coords[2] for coords in r_theta_phis], c=color_range, cmap="Reds")
-        # plt.hist2d([coords[1] for coords in r_theta_phis], [coords[2] for coords in r_theta_phis], range=[[0, 2*np.pi], [-np.pi, np.pi]])
+        print("color_range: ", color_range)
+        thetas = [coords[1] for coords in r_theta_phis]
+        phis = [coords[2] for coords in r_theta_phis]
+
+        plt.scatter(thetas, phis, c=color_range, cmap="YlOrRd", edgecolors="black")
         plt.xlabel("Theta (rad)")
         plt.ylabel("Phi (rad)")
         plt.title("Energy Deposited in Calorimeter SiPMs by Theta vs. Phi")
         cbar = plt.colorbar()
         cbar.set_label('Amount of Energy Deposited')
         plt.show()
-
-
-    # #Use the information above to get the energies deposited from the corresponding crystals.
-    # for calo_id in event.crystal_ids:
-    #     #Get the index of our calo ID in order to locate the corresponding energy deposition from the calo tree.
-    #     id_index = event.crystal_ids.index(calo_id)
-
-    #     #Only add the current crystal to the pile if there was a significant energy deposit at its location. Also check to see if only 1 calo entry
-    #     #is present - in this case, the calo ID is marked as a single volume and we just get 1000, which we don't want to count.
-    #     if (tree_calo.edep[id_index] > 0.01) and len(event.crystal_ids) > 1:
-    #         event.edep_theta_phis.append(global_crys_dict.get(ID))
 
     return event
 
@@ -289,12 +282,12 @@ def event_visualization(tree, tree_calo, is_event_DAR, display_text_output, disp
         e = process_event(tree, tree_calo, event_indices[i])
 
         # TODO Uncomment and fix option choice on user interface.
-        # if display_text_output:
-        #     display_event(e)
+        if display_text_output:
+            display_event(e)
         
-        # #Show events with abnormally large energies if we want.
-        # if display_outliers and e.max_E > 7.5:
-        #     plot_event(e, 50)
+        #Show events with abnormally large energies if we want.
+        if display_outliers and e.max_E > 7.5:
+            plot_event(e, 50)
 
         for gt in e.gap_times:
             gap_times.append(gt)
@@ -375,7 +368,7 @@ def compare_gap_times(gap_times_DIF, gap_times_DAR, num_bins):
 
 
 #Compare energy deposition and gap times of DARs and DIFs for pion --> e data.
-PiEfile = r.TFile("pienux_out.root_stripped.root")
+PiEfile = r.TFile("updated_remove_zeros.root")
 PiEtree = PiEfile.Get("atar")
 PiEtree_calo = PiEfile.Get("calorimeter")
 print([x.GetName() for x in PiEtree_calo.GetListOfBranches()])
