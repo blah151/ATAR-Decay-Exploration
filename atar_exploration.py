@@ -72,32 +72,14 @@ def process_event(tree, tree_calo, event_index):
     event.crystal_ids = list(tree_calo.crystal)
     event.calo_edep = list(tree_calo.edep)
 
-    print("crystal IDs: ", event.crystal_ids)
-    print("edep: ", event.calo_edep)
-
     # Use the IDs (tree_calo.crystal) to get the corresponding values from the dictionary of (ID: (r, theta, phi)) values (global_crys_dict).
-    r_theta_phis = []
+    event.r_theta_phis = []
     for ID in event.crystal_ids:
-        r_theta_phis.append(global_crys_dict.get(ID))
+        event.r_theta_phis.append(global_crys_dict.get(ID))
 
-    print("r_theta_phis: ", r_theta_phis)
-
-    # TODO
-    # plot a 2d histogram of energy deposited in each SIPM "pixel" in the calorimeter. Also check to see if only 1 calo entry
-    # is present - in this case, the calo ID could be marked as a single volume and we just get 1000, which we don't want to count.
-    if len(event.crystal_ids) > 1:
-        color_range = event.calo_edep
-        print("color_range: ", color_range)
-        thetas = [coords[1] for coords in r_theta_phis]
-        phis = [coords[2] for coords in r_theta_phis]
-
-        plt.scatter(thetas, phis, c=color_range, cmap="YlOrRd", edgecolors="black")
-        plt.xlabel("Theta (rad)")
-        plt.ylabel("Phi (rad)")
-        plt.title("Energy Deposited in Calorimeter SiPMs by Theta vs. Phi")
-        cbar = plt.colorbar()
-        cbar.set_label('Amount of Energy Deposited')
-        plt.show()
+    # print("crystal IDs: ", event.crystal_ids)
+    # print("edep: ", event.calo_edep)
+    # print("r_theta_phis: ", event.r_theta_phis)
 
     return event
 
@@ -176,6 +158,12 @@ def plot_event(event, num_planes):
 
     plt.subplot(2,4,1)
 
+    print("x_data:", event.x_data)
+    print("y_data:", event.y_data)
+    print("z_data:", event.z_data)
+    print("t_data:", event.t_data)
+    print("E_data:", event.E_data)
+
     plot_with_color_legend(event.z_data, event.x_data, event.pixel_pdgs)
     plt.title("x vs. z")
     plt.xlabel("z (plane number)")
@@ -213,18 +201,22 @@ def plot_event(event, num_planes):
     #Here, we plot the calo analysis data.
     plt.subplot(2,4,5)
 
-    print("event.edep_theta_phis:", event.edep_theta_phis)
-    # plt.scatter(crys_thetas, crys_phis)
-    # plt.xlabel("Theta (rad)")
-    # plt.ylabel("Phi (rad)")
-    # plt.title("Energy Deposited in Calorimeter SiPMs by Theta vs. Phi")
-    # plt.show()
+    # Plot scatterplot of energy deposited in each SIPM "pixel" in the calorimeter. Also check to see if only 1 calo entry
+    # is present - in this case, the calo ID could be marked as a single volume and we just get 1000, which we don't want to count. The points are
+    # color coded by energy deposition and surrounded by a black border to make faint colors easier to distinguish from the white background.
+    if len(event.crystal_ids) > 1:
+        color_range = event.calo_edep
+        thetas = [coords[1] for coords in event.r_theta_phis]
+        phis = [coords[2] for coords in event.r_theta_phis]
 
-    # plt.hist2d(event.thetas, event.phis, bins = 50)
-    plt.xlabel("Theta (rad)")
-    plt.ylabel("Phi (rad)")
-    plt.title("Energy Deposited in Calorimeter SiPMs by Theta vs. Phi")
-    plt.colorbar(orientation="vertical")
+        plt.scatter(thetas, phis, c=color_range, cmap="YlOrRd", edgecolors="black")
+        plt.xlabel("Theta (rad)")
+        plt.ylabel("Phi (rad)")
+        plt.title("Energy Deposited in Calorimeter SiPMs by Theta vs. Phi")
+        plt.xlim(0, 3.2)
+        plt.ylim(-3.2, 3.2)
+        cbar = plt.colorbar()
+        cbar.set_label('Amount of Energy Deposited')
 
     plt.subplots_adjust(left = 0.1,
                         bottom = 0.1, 
@@ -232,7 +224,7 @@ def plot_event(event, num_planes):
                         top = 0.9, 
                         wspace = 0.5, 
                         hspace = 0.4)
-
+    
     plt.show()
 
 
@@ -285,8 +277,10 @@ def event_visualization(tree, tree_calo, is_event_DAR, display_text_output, disp
         if display_text_output:
             display_event(e)
         
+        # TODO Max_E should not be the only parameter by which we choose the plots we want to show.
         #Show events with abnormally large energies if we want.
-        if display_outliers and e.max_E > 7.5:
+        if display_outliers and e.max_E > 1:
+            # print(e.max_E)
             plot_event(e, 50)
 
         for gt in e.gap_times:
