@@ -154,7 +154,7 @@ def plot_with_color_legend(x_coords, y_coords, pixel_pdgs):
 #Display 0 to num_planes on plots including the z variable.
 def plot_event(event, num_planes):
 
-    plt.figure(figsize = (25, 15))
+    fig = plt.figure(figsize = (15, 10))
 
     plt.subplot(2,4,1)
 
@@ -218,13 +218,14 @@ def plot_event(event, num_planes):
         cbar = plt.colorbar()
         cbar.set_label('Amount of Energy Deposited')
 
-    plt.subplots_adjust(left = 0.1,
-                        bottom = 0.1, 
-                        right = 0.9, 
-                        top = 0.9, 
-                        wspace = 0.5, 
-                        hspace = 0.4)
+    # plt.subplots_adjust(left = 0.1,
+    #                     bottom = 0.1, 
+    #                     right = 0.9, 
+    #                     top = 0.9, 
+    #                     wspace = 0.5, 
+    #                     hspace = 0.4)
     
+    plt.tight_layout()
     plt.show()
 
 
