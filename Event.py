@@ -17,7 +17,7 @@ r_theta_phis - coordinate pairs (theta, phi) that we will plot later.
 
 import numpy as np
 
-class Event():
+class Event:
 
     def __init__(self):
         self.t_data = []

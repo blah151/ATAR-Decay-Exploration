@@ -10,8 +10,52 @@ from Event import Event
 import calo_analysis
 
 
-class ATAR_Display():
+class Event_Visualizer:
+    #TODO: Deal with is_event_DAR along with select_events()
+    '''
+    Combines the functions we created above to give a visualization of events with the specified condition(s).
+    is_event_DAR: Value of 0 = decays in flight, 1 = decays at rest, 2 = all data used.
+    display_text_output = True / False controls whether we should have text info / not have text info displayed.
+    display_plots = True / False controls whether event data is plotted or not.
+    num_events allows us to plot multiple events with the specified conditions from the tree.\
+    gap_times = True / False means we should show / not show gap times between decays if any are present.
+    '''
+    def visualize_event(self, tree_atar, tree_calo, is_event_DAR, display_text_output, event_index):
+
+        #Use max edep per plane as a heuristic to distinguish between DIFs and DARs.
+        max_Es = []
+
+        #Keep track of gap times.
+        gap_times = []
+
+        #Process the event whose index we are given.
+        e = self.process_event(tree_atar, tree_calo, event_index)
+
+        # TODO Uncomment and fix option choice on user interface.
+        if display_text_output:
+            self.display_event(e)
+        
+        # TODO Need to incorporate 1) selection of events and 2) discrimination by max_E
     
+        self.plot_event(e, 50)
+
+        for gt in e.gap_times:
+            gap_times.append(gt)
+
+        max_Es.append(e.max_E)
+            
+        return (max_Es, gap_times)
+
+    
+    #Uses the TFile retreived from the .root file to get the active target and calorimeter trees, which are used by other methods to get the
+    #data we need.
+    def get_trees(self, r_TFile):
+        self.tree_atar = r_TFile.Get("atar")
+        self.tree_calo = r_TFile.Get("calorimeter")
+
+        return self.tree_atar, self.tree_calo
+
+
     '''
     Returns the time vs. x and time vs. y data from the pixel_hits. The ATAR is made up of sheets that contain alternating horizontal or vertical strips with npixels_per_plane.
     If npixels_per_plane were 100, for instance, 100036 would represent plate 1, 36 / 100 in x, 100161 would represent plate 2, 61 / 100 in y, etc. The output for each of 
@@ -19,15 +63,15 @@ class ATAR_Display():
     Also extract the z (plane #) vs. time data. The third element of the tuples contained in this list and the x and y lists will contain corresponding colors to represent
     when particles have decayed.
     '''
-    def process_event(tree, tree_calo, event_index):
+    def process_event(self, tree_atar, tree_calo, event_index):
         #Get the specified entries from our trees so we can extract data from them.
-        tree.GetEntry(event_index)
+        tree_atar.GetEntry(event_index)
         tree_calo.GetEntry(event_index)
 
         #Store pixel hits for the entry printed above in which a pion didn't decay at rest.
-        pixel_times = tree.pixel_time
-        pixel_hits = tree.pixel_hits
-        pixel_edep = tree.pixel_edep
+        pixel_times = tree_atar.pixel_time
+        pixel_hits = tree_atar.pixel_hits
+        pixel_edep = tree_atar.pixel_edep
         
         #Initialize lists for storing color (for labeling data points according to decay product), t, x, y, z, energy, and energy per plane using the Event class.
         npixels_per_plane = 100
@@ -56,7 +100,7 @@ class ATAR_Display():
             event.z_data.append(plane)
             event.E_data.append(pixel_edep[i])
 
-            # #Keep track of any gaps in time between decays.
+            #Keep track of any gaps in time between decays.
             if cur_time - last_time > 1.0:      #TODO: Adjust this time gap (in ns) as needed.
                 event.gap_times.append(cur_time - last_time)
 
@@ -64,7 +108,7 @@ class ATAR_Display():
             event.E_per_plane[plane] += pixel_edep[i]
 
         #Keep track of particle IDs.
-        event.pixel_pdgs = tree.pixel_pdg
+        event.pixel_pdgs = tree_atar.pixel_pdg
 
         #Keep track of maximum energy deposited per plane in this event.
         event.max_E = max(event.E_per_plane)
@@ -88,7 +132,7 @@ class ATAR_Display():
 
 
     #Show some useful parameters describing our event.
-    def display_event(event):
+    def display_event(self, event):
         print("Length of pixel_pdgs: " + str(len(event.pixel_pdgs)))
         print("Length of t_data: " + str(len(event.t_data)))
         print("Length of x_data: " + str(len(event.x_data)))
@@ -102,7 +146,7 @@ class ATAR_Display():
 
 
     #For each color in a list of color labels for different particles, plot the corresponding data.
-    def plot_with_color_legend(x_coords, y_coords, pixel_pdgs):
+    def plot_with_color_legend(self, x_coords, y_coords, pixel_pdgs):
         #Store colors and corresponding particle type labels in one place for ease of editing.
         colors = ["r", "b", "g", "y", "m"]
         labels = ["Pion", "Positron", "Electron", "Antimuon", "Muon"]
@@ -153,9 +197,9 @@ class ATAR_Display():
             plt.scatter(x, y, 10, other_colors[i], label = str(ID))
 
 
-    #Plot x vs. t, y vs. t, z vs. t, and E vs. z data from our event. The graphs will show the color-coding system used to represent different particles.
-    #Display 0 to num_planes on plots including the z variable.
-    def plot_event(event, num_planes):
+    #Plot the following data from our event: x vs. t, y vs. t, z vs. t, E vs. z, and energy deposited in calorimeter by (theta, phi). The graphs 
+    #will show the color-coding system used to represent different particles. Display 0 to num_planes on plots including the z variable.
+    def plot_event(self, event, num_planes):
 
         fig = plt.figure(figsize = (15, 10))
 
@@ -167,7 +211,7 @@ class ATAR_Display():
         print("t_data:", event.t_data)
         print("E_data:", event.E_data)
 
-        plot_with_color_legend(event.z_data, event.x_data, event.pixel_pdgs)
+        self.plot_with_color_legend(event.z_data, event.x_data, event.pixel_pdgs)
         plt.title("x vs. z")
         plt.xlabel("z (plane number)")
         plt.ylabel("x (pix)")
@@ -176,7 +220,7 @@ class ATAR_Display():
         plt.ylim(0, 100)
 
         plt.subplot(2,4,2)
-        plot_with_color_legend(event.z_data, event.y_data, event.pixel_pdgs)
+        self.plot_with_color_legend(event.z_data, event.y_data, event.pixel_pdgs)
         plt.title("y vs. z")
         plt.xlabel("z (plane number)")
         plt.ylabel("y (pix)")
@@ -184,7 +228,7 @@ class ATAR_Display():
         plt.ylim(0, 100)
 
         plt.subplot(2,4,3)
-        plot_with_color_legend(event.t_data, event.z_data, event.pixel_pdgs)
+        self.plot_with_color_legend(event.t_data, event.z_data, event.pixel_pdgs)
         plt.title("z vs. t")
         plt.xlabel("t (ns)")
         plt.ylabel("z (plane number)")
@@ -232,10 +276,11 @@ class ATAR_Display():
         plt.show()
 
 
+    # TODO This method needs to be adapted after first round of changes have been made.
     #Use cuts to select the events we want from the tree. Returns an integer list of the indices of the events that we want from the tree.
     #is_event_DAR: Value of 0 = decays in flight, 1 = decays at rest, 2 = all data used.
     #num_events:  Controls how many events we want to select.
-    def select_events(tree, is_event_DAR, num_events):
+    def select_events(self, tree, is_event_DAR, num_events):
         #Apply logical cut to select whether we want DARs and to exclude empty data. n stores the number of entries that satisfy this cut.
         if is_event_DAR == 0:
             cut = "!pion_dar && Sum$(pixel_edep) > 0"
@@ -256,51 +301,14 @@ class ATAR_Display():
         return [int(i) for i in selected_events]
 
 
-    #Combines the functions we created above to give a visualization of events with the specified condition(s).
-    #is_event_DAR: Value of 0 = decays in flight, 1 = decays at rest, 2 = all data used.
-    #display_text_output = True / False controls whether we should have text info / not have text info displayed.
-    #display_plots = True / False controls whether event data is plotted or not.
-    #num_events allows us to plot multiple events with the specified conditions from the tree.\
-    #gap_times = True / False means we should show / not show gap times between decays if any are present.
-    def event_visualization(tree, tree_calo, is_event_DAR, display_text_output, display_outliers, num_events):
-        
-        #Get num_events indices for events that satisfy DAR / DIF criteria.
-        event_indices = select_events(tree, is_event_DAR, num_events)
-
-        #Use max edep per plane as a heuristic to distinguish between DIFs and DARs.
-        max_Es = []
-
-        #Keep track of gap times.
-        gap_times = []
-
-        #For each of the event indices specified, process the corresponding event and display useful output if we want, then plot it.
-        for i in range(len(event_indices)):
-            e = process_event(tree, tree_calo, event_indices[i])
-
-            # TODO Uncomment and fix option choice on user interface.
-            if display_text_output:
-                display_event(e)
-            
-            # TODO Max_E should not be the only parameter by which we choose the plots we want to show.
-            #Show events with abnormally large energies if we want.
-            if display_outliers and e.max_E > 1:
-                # print(e.max_E)
-                plot_event(e, 50)
-
-            for gt in e.gap_times:
-                gap_times.append(gt)
-
-            max_Es.append(e.max_E)
-            
-        return (max_Es, gap_times)
-
-
-    #Compare the maximum energy deposition of decays in flight and decays at rest. Show mean, median, and standard deviation for both sets of maximum energies, then plot them in
-    #histogram form. One should notice that the DARs have a higher median energy deposited, though the means may be closer due to large outliers present in some DIF data.
-    #max_Es_DIF:  Data for maximum energies from decays in flight.
-    #max_Es_DAR:  Data for maximum energies from decays at rest.
-    #num_bins:  Controls the number of bins used when plotting data on histograms.
-    def compare_max_edep(max_Es_DIF, max_Es_DAR, num_bins):
+    '''
+    Compare the maximum energy deposition of decays in flight and decays at rest. Show mean, median, and standard deviation for both sets of maximum energies, then plot them in
+    histogram form. One should notice that the DARs have a higher median energy deposited, though the means may be closer due to large outliers present in some DIF data.
+    max_Es_DIF:  Data for maximum energies from decays in flight.
+    max_Es_DAR:  Data for maximum energies from decays at rest.
+    num_bins:  Controls the number of bins used when plotting data on histograms.
+    '''
+    def compare_max_edep(self, max_Es_DIF, max_Es_DAR, num_bins):
         max_Es_DIF_mean = np.mean(max_Es_DIF)
         max_Es_DIF_median = np.median(max_Es_DIF)
         max_Es_DIF_std = np.std(max_Es_DIF)
@@ -330,12 +338,14 @@ class ATAR_Display():
         plt.show()
 
 
-    #Plots gap times given and visualizes how these correlate with DIFs / DARs.
-    #gap_times: A list of times in ns.
-    #gap_times_DIF:  Data for times between decays for DIFs in ns.
-    #gap_times_DAR:  Data for times between decays for DARs in ns.
-    #num_bins:  Controls the number of bins used when plotting data on histograms.
-    def compare_gap_times(gap_times_DIF, gap_times_DAR, num_bins):
+    '''
+    Plots gap times given and visualizes how these correlate with DIFs / DARs.
+    gap_times: A list of times in ns.
+    gap_times_DIF:  Data for times between decays for DIFs in ns.
+    gap_times_DAR:  Data for times between decays for DARs in ns.
+    num_bins:  Controls the number of bins used when plotting data on histograms.
+    '''
+    def compare_gap_times(self, gap_times_DIF, gap_times_DAR, num_bins):
         gap_times_DIF_mean = np.mean(gap_times_DIF)
         gap_times_DIF_median = np.median(gap_times_DIF)
         gap_times_DIF_std = np.std(gap_times_DIF)
