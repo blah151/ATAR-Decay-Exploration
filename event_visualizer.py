@@ -1,8 +1,21 @@
-# This class provides functionality for viewing characteristics of selected events in the active target. The user can pass the event that they want
-# along with various parameters to control how that data displays. 5 different plots are shown for each event: particle x vs. z, particle y vs. z, 
-# particle z vs. t, energy deposition per plane vs. z, and energy deposited in SiPMs by (theta, phi) coordinates on the ATAR.
+'''
+This class provides functionality for viewing characteristics of selected events in the active target (ATAR). The user can pass the .root file and the
+indices of an event or a range of events that they want to analyze to the visualize_event() method, which will display a few plots of data that
+succinctly summarize the event. Various options can be specified to give more detailed info about the events or display the raw data. If instead one
+desires to search for events with certain qualities of interest, the _____ method can be used with various search parameters, subsequently displaying
+a selected quantity of events that satisfy the given parameters. 5 different plots are shown for each event: particle x vs. z, particle y vs. z,
+particle z vs. t, energy deposition per plane vs. z, and energy deposited in the calorimeter SiPMs by (theta, phi) coordinates.
+
+-->A quick summary of the structure of the simulated ATAR:
+
+The ATAR is comprised of a series of detection planes whose integer indices start at 10,000 by convention in the simulation code. We denote the plane
+number, or depth that the particle penetrates into the ATAR, by "z." These planes are comprised of strips that alternate horizontal and vertical
+orientation. Thus, the 1st plate measures "x," the 2nd measures "y," the third measures "x," and so on, alternating every plate. We operate under the
+assumption that 100 strips comprise each plate in the simulation data supplied.
+'''
 
 from logging.config import IDENTIFIER
+from typing import overload
 import ROOT as r
 import numpy as np
 from matplotlib import pyplot as plt
@@ -12,16 +25,19 @@ import calo_analysis
 
 
 class Event_Visualizer:
-    #TODO: Deal with is_event_DAR along with select_events()
+    #TODO: Reimplement is_event_DAR along with select_events()
     '''
     The primary method that this class is used for. Uses helper functions below to give a visualization of events satisfying the specified condition(s).
-    is_event_DAR: Value of 0 = decays in flight, 1 = decays at rest, 2 = all data used.
-    display_text_output = True / False controls whether we should have text info / not have text info displayed.
-    display_plots = True / False controls whether event data is plotted or not.
-    num_events allows us to plot multiple events with the specified conditions from the tree.
-    gap_times = True / False means we should show / not show gap times between decays if any are present.
+    input_file: The .root file that contains the data of interest. Should have been extracted as a TFile object before passing as a parameter.
+    event_index: The index of the event we want to investigate. Should be a positive integer.
+    is_event_DAR (optional): Value of 0 = decays in flight, 1 = decays at rest, 2 = all data used. 2 is the default value if nothing is specified.
+    display_text_output (optional): Value of True / False, controls whether we do / do not have our event data displayed in text format. Defaults
+                                    to False (no text displayed).
     '''
-    def visualize_event(self, tree_atar, tree_calo, is_event_DAR, display_text_output, event_index):
+    def visualize_event(self, input_file, event_index, is_event_DAR = 2, display_text_output = False):
+
+        #Get the ATAR and calorimeter trees from our .root file.
+        tree_atar, tree_calo = self.get_trees(input_file)
 
         #Use max edep per plane as a heuristic to distinguish between DIFs and DARs.
         max_Es = []
@@ -32,7 +48,6 @@ class Event_Visualizer:
         #Process the event whose index we are given.
         e = self.process_event(tree_atar, tree_calo, event_index)
 
-        # TODO Uncomment and fix option choice on user interface.
         if display_text_output:
             self.display_event(e)
         
@@ -83,9 +98,8 @@ class Event_Visualizer:
         
         #Extract x vs. t, y vs. t, and z vs. t data. Also add indexed color coding to represent different particles.
         for i in range(pixel_hits.size()):
-            #We can get the plane number using some modular arithmetic on the pixel_hits values. The convention is that these numbers start at 100,000,
-            #so we must subtract 100,000. We also have to subtract 1 to deal with 100 wrapping around to 0 when it shouldn't (i.e., an "off by one"
-            #error)
+            #We can get the plane number using some modular arithmetic on the pixel_hits values. Since these numbers start at 100,000, we must subtract
+            #100,000. We also have to subtract 1 to deal with 100 wrapping around to 0 when it shouldn't (i.e., an "off by one" error).
             plane = int(np.floor((pixel_hits[i] - 1 - 100_000) / npixels_per_plane))
 
             cur_val = (pixel_hits[i] - 1) % npixels_per_plane
@@ -216,7 +230,7 @@ class Event_Visualizer:
             plt.xlim(0, 3.2)
             plt.ylim(-3.2, 3.2)
             cbar = plt.colorbar()
-            cbar.set_label('Amount of Energy Deposited')
+            cbar.set_label('Amount of Energy Deposited (MeV)')
 
         # plt.subplots_adjust(left = 0.1,
         #                     bottom = 0.1,

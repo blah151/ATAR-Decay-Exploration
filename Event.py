@@ -1,4 +1,4 @@
-'''Class stores the following data for ease of use:
+'''This class stores the following event data for ease of use:
 t - time data.
 x - x-coordinate data.
 y - y-coordinate data.
