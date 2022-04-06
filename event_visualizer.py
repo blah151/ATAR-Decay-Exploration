@@ -178,7 +178,6 @@ class Event_Visualizer:
 
         plt.subplot(2,4,1)
         self.plot_with_color_legend(event.z_data, event.x_data, event.pixel_pdgs)
-        #plt.scatter([0, 5, 10, 15, 20, 25, 30], [0, np.nan, 10, np.nan, 20, np.nan, 30], 10, "r", label = "Pion")
         plt.title("x vs. z")
         plt.xlabel("z (plane number)")
         plt.ylabel("x (pixels)")
@@ -226,7 +225,7 @@ class Event_Visualizer:
             plt.scatter(thetas, phis, c=color_range, cmap="YlOrRd", edgecolors="black")
             plt.xlabel("Theta (rad)")
             plt.ylabel("Phi (rad)")
-            plt.title("Energy Deposited in Calorimeter SiPMs by Theta vs. Phi")
+            plt.title("Energy Deposited in Calorimeter SiPMs \n by Theta vs. Phi")
             plt.xlim(0, 3.2)
             plt.ylim(-3.2, 3.2)
             cbar = plt.colorbar()
